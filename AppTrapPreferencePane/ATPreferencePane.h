@@ -64,7 +64,7 @@
 /**
  * Method called by the NSDistributedNotificationCenter on behalf of the
  * background process. Checks the background process version in the userInfo
- * dictionary in notification and opens an appropriate alert sheet if the
+ * dictionary in notification and opens an appropriate alert if the
  * background process version is different from the preference pane version.
  *
  * @param[in] notification The NSNotification that invoked this method.
@@ -77,39 +77,21 @@
 - (void)checkBackgroundProcessVersion;
 
 /**
- * Check to see if the application referenced by thePath is in the user's list
- * of login items.
+ * Check whether AppTrap is in the user's list of login items.
  *
- * @param[in] theLoginItemsRefs The list of the user's login items.
- * @param[in] thePath The URL to the application in question.
- * @return a BOOL indicating whether the application referenced by thePath is in
- * the user's list of login items.
- * @todo Modify this method, or make a new one, that gets the login items on its
- * own (without a parameter).
+ * @return a BOOL indicating whether AppTrap is registered as a login item.
  */
-- (BOOL)inLoginItems:(LSSharedFileListRef)theLoginItemsRefs forPath:(CFURLRef)thePath;
+- (BOOL)inLoginItems;
 
 /**
- * Add the application referenced by thePath to the list of user's login items.
- *
- * @param[in] theLginItemsRefs The list of user's login items.
- * @param[in] thePath The URL to the application to be added.
- * @todo Modify this method, or make a new one, that gets the login items on its
- * own (without a parameter).
+ * Add AppTrap to the list of user's login items.
  */
-- (void)addToLoginItems:(LSSharedFileListRef )theLoginItemsRefs forPath:(CFURLRef)thePath;
+- (void)addToLoginItems;
 
 /**
- * Remove the application referenced by thePath from the list of user's login
- * items.
- *
- * @param[in] theLoginItemsRefs The list of user's login items.
- * @param[in] thePath The URL to the application to be added to the list of
- * login items.
- * @todo Modify this method, or make a new one, that gets the login items on its
- * own (without a parameter).
+ * Remove AppTrap from the list of user's login items.
  */
-- (void)removeFromLoginItems:(LSSharedFileListRef )theLoginItemsRefs forPath:(CFURLRef)thePath;
+- (void)removeFromLoginItems;
 
 /**
  * Enable or disable automatic update checking, depending on the sender's state.
@@ -144,7 +126,7 @@
 /**
  * Open the AppTrap website in the user's default browser. Called by a button.
  *
- * @param[in] sender The control that invoked this method (likely a checkbox).
+ * @param[in] sender The control that invoked this method (likely a button).
  */
 - (IBAction)visitWebsite:(id)sender;
 

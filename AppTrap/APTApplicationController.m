@@ -131,25 +131,19 @@ static NSString *SandboxContainersFolderName = @"Containers";
 	[self.eventsWatcher stopWatching];
 	[self setEventsWatcher:nil];
 	
-	NSWorkspace *workspace = [NSWorkspace sharedWorkspace];
-	NSString *emptyString = @"";
+	NSFileManager *fileManager = [NSFileManager defaultManager];
 	for (NSString *path in paths)
 	{
-		NSString *source = path.stringByDeletingLastPathComponent;
-		NSString *fileName = path.lastPathComponent;
-		NSInteger tag;
-		BOOL success = [workspace performFileOperation:NSWorkspaceRecycleOperation
-												source:source
-										   destination:emptyString
-												 files:@[fileName]
-												   tag:&tag];
+		NSURL *url = [NSURL fileURLWithPath:path];
+		NSError *error = nil;
+		BOOL success = [fileManager trashItemAtURL:url resultingItemURL:nil error:&error];
 		if (success)
 		{
 			NSLog(@"Successfully moved %@ to trash", path);
 		}
 		else
 		{
-			NSLog(@"Couldn't move %@ to trash (tag = %d)", path, (int)tag);
+			NSLog(@"Couldn't move %@ to trash: %@", path, error);
 		}
 	}
 	
@@ -164,9 +158,14 @@ static NSString *SandboxContainersFolderName = @"Containers";
 {
     NSTask *task = [NSTask new];
     NSString *launchPath = [[NSBundle mainBundle] pathForResource:@"RelaunchObjC" ofType:nil];
-    task.launchPath = launchPath;
+    task.executableURL = [NSURL fileURLWithPath:launchPath];
     task.arguments = @[[NSString stringWithFormat:@"%d", [NSProcessInfo processInfo].processIdentifier]];
-    [task launch];
+    NSError *error = nil;
+    [task launchAndReturnError:&error];
+    if (error)
+    {
+        NSLog(@"Failed to launch RelaunchObjC: %@", error);
+    }
 }
 
 #pragma mark - Core

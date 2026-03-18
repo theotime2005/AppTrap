@@ -9,11 +9,11 @@
 #import <AppKit/AppKit.h>
 
 @interface Observer: NSObject
-@property (nonatomic, copy) void (^callback)();
-- (instancetype)initWithCallback:(void (^)())callback;
+@property (nonatomic, copy) void (^callback)(void);
+- (instancetype)initWithCallback:(void (^)(void))callback;
 @end
 @implementation Observer
-- (instancetype)initWithCallback:(void (^)())callback {
+- (instancetype)initWithCallback:(void (^)(void))callback {
     self = [super init];
     if (self) {
         _callback = callback;
@@ -23,7 +23,7 @@
 
 - (void)observeValueForKeyPath:(NSString *)keyPath
                       ofObject:(id)object
-                        change:(NSDictionary<NSString *,id> *)change
+                        change:(NSDictionary<NSKeyValueChangeKey, id> *)change
                        context:(void *)context {
     self.callback();
 }
@@ -31,9 +31,12 @@
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
+        if (argc < 2) { return 1; }
         int parentPid = atoi(argv[1]);
         NSRunningApplication *app = [NSRunningApplication runningApplicationWithProcessIdentifier:parentPid];
         NSURL *bundleURL = app.bundleURL;
+        if (!bundleURL) { return 1; }
+
         Observer *listener = [[Observer alloc] initWithCallback:^{
             CFRunLoopStop(CFRunLoopGetCurrent());
         }];
@@ -41,11 +44,17 @@ int main(int argc, const char * argv[]) {
         [app terminate];
         CFRunLoopRun();
         [app removeObserver:listener forKeyPath:@"isTerminated"];
-        
-        [[NSWorkspace sharedWorkspace] launchApplicationAtURL:bundleURL
-                                                      options:NSWorkspaceLaunchDefault
-                                                configuration:[NSDictionary new]
-                                                        error:nil];
+
+        NSWorkspaceOpenConfiguration *config = [NSWorkspaceOpenConfiguration configuration];
+        config.addsToRecentItems = NO;
+        config.activates = NO;
+        [[NSWorkspace sharedWorkspace] openApplicationAtURL:bundleURL
+                                              configuration:config
+                                          completionHandler:^(NSRunningApplication *runningApp, NSError *error) {
+            if (error) {
+                NSLog(@"Failed to relaunch app: %@", error);
+            }
+        }];
     }
     return 0;
 }
