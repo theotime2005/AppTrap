@@ -1,88 +1,128 @@
 # AppTrap
 
-AppTrap is a macOS utility that automatically offers to move associated files (preferences, caches, application support data) to the Trash when you delete an application.
+AppTrap is a macOS utility distributed as a **System Settings preference pane** (`AppTrap.prefPane`) plus a background app (`AppTrap.app`).
+
+- `AppTrap.prefPane` is the plugin shown in System Settings.
+- `AppTrap.app` watches app deletions and offers to remove related files.
+
+The preference pane bundles the background app so users install one `.prefPane` and get both components.
 
 ## Requirements
 
-- **macOS 13 (Ventura) or later** — this is the minimum supported version.
-- **Xcode 15 or later** — required to build the project. Download it from the Mac App Store or [developer.apple.com](https://developer.apple.com/xcode/).
+- **macOS 13 (Ventura) or later**
+- **Xcode 15 or later** (CLI tools included)
 
-## Architecture
-
-The project is split into two parts:
-
-| Component | Description |
-|-----------|-------------|
-| `AppTrap` | Background agent (`AppTrap.app`) that watches the Trash and detects removed apps |
-| `AppTrapPreferencePane` | System Settings preference pane (`AppTrap.prefPane`) that lets the user start/stop the agent and manage login items |
-
-The preference pane embeds `AppTrap.app` inside its bundle so both components are distributed together.
-
-## Building from source
-
-### Using Xcode (recommended)
-
-1. Open the workspace:
-   ```
-   open AppTrap.xcworkspace
-   ```
-2. In the Xcode toolbar, select the **AppTrap** scheme and choose **My Mac** as the destination.
-3. Press **⌘B** (or choose **Product › Build**) to compile the AppTrap background agent.
-4. Switch the scheme to **AppTrapPreferencePane** and press **⌘B** again to compile the preference pane.
-
-> **Tip:** Build **AppTrap** first. The preference pane build phase automatically copies the freshly built `AppTrap.app` into its bundle.
-
-### Using `xcodebuild` (command line)
+Verify tools:
 
 ```bash
-# 1. Build the background agent
-xcodebuild -project AppTrap/AppTrap.xcodeproj \
-           -scheme AppTrap \
-           -configuration Release \
-           build
-
-# 2. Build the preference pane (embeds AppTrap.app automatically)
-xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj \
-           -scheme AppTrapPreferencePane \
-           -configuration Release \
-           build
+xcodebuild -version
+xcode-select -p
 ```
 
-Built products are placed in `~/Library/Developer/Xcode/DerivedData/` by default.
+## Repository layout
+
+- `/home/runner/work/AppTrap/AppTrap/AppTrap` → background app project (`AppTrap.xcodeproj`)
+- `/home/runner/work/AppTrap/AppTrap/AppTrapPreferencePane` → preference pane project (`AppTrapPreferencePane.xcodeproj`)
+- `/home/runner/work/AppTrap/AppTrap/AppTrap.xcworkspace` → workspace entry point
+
+## Dependency process (what depends on what)
+
+### Build graph
+
+1. `AppTrap` project builds:
+   - `AppTrap.app`
+   - `RelaunchObjC` helper (target dependency of `AppTrap`)
+2. `AppTrapPreferencePane` project builds:
+   - `AppTrap.prefPane`
+   - Copies `AppTrap.app` into the preference pane bundle (`Copy AppTrap` build phase)
+   - Copies bundled `Sparkle.framework` into the pane (`Copy Sparkle Framework` build phase)
+
+### Dependency sources
+
+- **System frameworks**: Cocoa/AppKit/Foundation/PreferencePanes/CoreServices (from macOS SDK)
+- **Bundled third-party framework**: `AppTrapPreferencePane/Sparkle.framework` (vendored in repo)
+- **No package manager step** is required (`brew`, `npm`, `pod`, `spm` are not used for this project)
+
+## Setup
+
+```bash
+cd /home/runner/work/AppTrap/AppTrap
+open AppTrap.xcworkspace
+```
+
+In Xcode:
+
+1. Select scheme **AppTrap** and destination **My Mac**.
+2. Build (`⌘B`).
+3. Select scheme **AppTrapPreferencePane**.
+4. Build again (`⌘B`).
+
+> Build `AppTrap` first so the preference pane copy phase can package a fresh `AppTrap.app`.
+
+## Command-line build
+
+From `/home/runner/work/AppTrap/AppTrap`:
+
+```bash
+# 1) Build background app
+xcodebuild \
+  -project AppTrap/AppTrap.xcodeproj \
+  -scheme AppTrap \
+  -configuration Release \
+  build
+
+# 2) Build System Settings plugin (.prefPane)
+xcodebuild \
+  -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj \
+  -scheme AppTrap \
+  -configuration Release \
+  build
+```
+
+Artifacts are in Xcode DerivedData by default.
 
 ## Installation
 
-1. Build both components (see above).
-2. Locate `AppTrapPreferencePane.prefPane` in the build output (DerivedData).
-3. Double-click the `.prefPane` file to install it. macOS will prompt you to install it for just your user account or for all users.
-4. Open **System Settings › AppTrap** to enable the agent and configure the "Start on login" option.
+After a successful Release build, locate `AppTrap.prefPane` in DerivedData and install it.
 
-## Running the tests
+### UI install
 
-Select the **AppTrapTests** or **PrefPaneTests** scheme in Xcode and press **⌘U**, or use `xcodebuild test`:
+- Double-click `AppTrap.prefPane`
+- Choose install scope:
+  - **Current user** → `~/Library/PreferencePanes/`
+  - **All users** → `/Library/PreferencePanes/`
+
+### Terminal install (current user)
 
 ```bash
-xcodebuild -project AppTrap/AppTrap.xcodeproj \
-           -scheme AppTrapTests \
-           -destination 'platform=macOS' \
-           test
+mkdir -p "$HOME/Library/PreferencePanes"
+cp -R "/path/to/AppTrap.prefPane" "$HOME/Library/PreferencePanes/"
 ```
 
-## What changed for modern macOS compatibility
+Open **System Settings** and select **AppTrap**.
 
-The following deprecated or removed APIs were replaced when updating the project to support macOS 13+:
+## Build and compilation verification commands
 
-| Old API | Replacement | Reason |
-|---------|-------------|--------|
-| `NSWorkspace -performFileOperation:NSWorkspaceRecycleOperation` | `NSFileManager -trashItemAtURL:resultingItemURL:error:` | Removed in macOS 12 |
-| `NSTask.launchPath` / `-launch` | `NSTask.executableURL` / `-launchAndReturnError:` | Deprecated in macOS 10.13 |
-| `NSWorkspace -launchApplicationAtURL:options:configuration:error:` | `NSWorkspace -openApplicationAtURL:configuration:completionHandler:` | Deprecated in macOS 10.15, removed in macOS 15 |
-| `NSWorkspace -openURLs:withAppBundleIdentifier:options:additionalEventParamDescriptor:launchIdentifiers:` | `NSWorkspace -openApplicationAtURL:configuration:completionHandler:` | Deprecated in macOS 10.15, removed in macOS 15 |
-| `LSSharedFileList*` (login items) | `SMAppService -loginItemServiceWithIdentifier:` | Removed in macOS 13 |
-| `NSBeginAlertSheet` | `NSAlert -beginSheetModalForWindow:completionHandler:` | Deprecated in macOS 10.9 |
-| `NSOnState` / `NSOffState` / `NSAlertDefaultReturn` | `NSControlStateValueOn/Off` / `NSAlertFirstButtonReturn` | Deprecated in macOS 10.13–14 |
-| `NSColor.blackColor` / `grayColor` | `NSColor.labelColor` / `secondaryLabelColor` | Adapts automatically to Dark Mode |
-| Swift 1.x/2.x syntax in `Relaunch/main.swift` | Swift 5 | Required for modern toolchains |
+Run these on macOS with Xcode installed:
+
+```bash
+# Compile app
+xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrap -configuration Debug build
+
+# Compile preference pane
+xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme AppTrap -configuration Debug build
+
+# Unit tests (legacy OCUnit/XCTest targets)
+xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrapTests -destination 'platform=macOS' test
+xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme PrefPaneTests -destination 'platform=macOS' test
+```
+
+## Troubleshooting
+
+- `xcodebuild: command not found`:
+  - Install Xcode on macOS and run `xcode-select --switch /Applications/Xcode.app`.
+- Signing failures in local builds:
+  - The preference pane includes a `Sign Sparkle` build phase. For local unsigned builds, use `CODE_SIGNING_ALLOWED=NO` in `xcodebuild` or adjust signing settings in Xcode.
 
 ## License
 
