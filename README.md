@@ -21,9 +21,9 @@ xcode-select -p
 
 ## Repository layout
 
-- `/home/runner/work/AppTrap/AppTrap/AppTrap` → background app project (`AppTrap.xcodeproj`)
-- `/home/runner/work/AppTrap/AppTrap/AppTrapPreferencePane` → preference pane project (`AppTrapPreferencePane.xcodeproj`)
-- `/home/runner/work/AppTrap/AppTrap/AppTrap.xcworkspace` → workspace entry point
+- `./AppTrap` → background app project (`AppTrap.xcodeproj`)
+- `./AppTrapPreferencePane` → preference pane project (`AppTrapPreferencePane.xcodeproj`)
+- `./AppTrap.xcworkspace` → workspace entry point
 
 ## Dependency process (what depends on what)
 
@@ -46,7 +46,7 @@ xcode-select -p
 ## Setup
 
 ```bash
-cd /home/runner/work/AppTrap/AppTrap
+cd /path/to/AppTrap
 open AppTrap.xcworkspace
 ```
 
@@ -61,7 +61,7 @@ In Xcode:
 
 ## Command-line build
 
-From `/home/runner/work/AppTrap/AppTrap`:
+From the repository root:
 
 ```bash
 # 1) Build background app
@@ -74,7 +74,7 @@ xcodebuild \
 # 2) Build System Settings plugin (.prefPane)
 xcodebuild \
   -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj \
-  -scheme AppTrap \
+  -scheme AppTrapPreferencePane \
   -configuration Release \
   build
 ```
@@ -110,7 +110,7 @@ Run these on macOS with Xcode installed:
 xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrap -configuration Debug build
 
 # Compile preference pane
-xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme AppTrap -configuration Debug build
+xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme AppTrapPreferencePane -configuration Debug build
 
 # Unit tests (legacy OCUnit/XCTest targets)
 xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrapTests -destination 'platform=macOS' test
