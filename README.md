@@ -6,6 +6,7 @@ AppTrap is a macOS utility distributed as a **System Settings preference pane** 
 - `AppTrap.app` watches app deletions and offers to remove related files.
 
 The preference pane bundles the background app so users install one `.prefPane` and get both components.
+The build scheme is `AppTrapPreferencePane`, and its output bundle is `AppTrap.prefPane`.
 
 ## Requirements
 
@@ -112,7 +113,7 @@ xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrap -configuration Deb
 # Compile preference pane
 xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme AppTrapPreferencePane -configuration Debug build
 
-# Unit tests (legacy OCUnit/XCTest targets)
+# Unit tests (project test targets)
 xcodebuild -project AppTrap/AppTrap.xcodeproj -scheme AppTrapTests -destination 'platform=macOS' test
 xcodebuild -project AppTrapPreferencePane/AppTrapPreferencePane.xcodeproj -scheme PrefPaneTests -destination 'platform=macOS' test
 ```
